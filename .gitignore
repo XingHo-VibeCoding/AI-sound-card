@@ -22,3 +22,6 @@ build/
 .idea/
 .DS_Store
 Thumbs.db
+
+# ---- WorkBuddy 本地工作数据（AI 记忆，不提交） ----
+.workbuddy/

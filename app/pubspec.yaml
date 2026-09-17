@@ -1,0 +1,39 @@
+name: recording_card_app
+description: 录音卡 - 英语口语练习 App（M1 复读机引擎 demo）
+publish_to: 'none'
+version: 0.1.0
+
+environment:
+  sdk: '>=3.5.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # 状态管理
+  flutter_riverpod: ^2.5.1
+  # 路由
+  go_router: ^14.2.0
+  # 播放 + 变速不变调（Android=ExoPlayer/Sonic）
+  just_audio: ^0.9.39
+  # 录音（WAV PCM16）
+  record: ^5.1.2
+  # 本地数据库
+  sqflite: ^2.3.3
+  path: ^1.9.0
+  # 文件目录
+  path_provider: ^2.1.4
+  # 麦克风权限
+  permission_handler: ^11.3.1
+  # 时间格式化
+  intl: ^0.19.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/sample/

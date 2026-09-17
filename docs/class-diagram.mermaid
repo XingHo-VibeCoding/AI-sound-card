@@ -1,0 +1,171 @@
+classDiagram
+    direction LR
+
+    class Sentence {
+        +int? id
+        +int? lessonId
+        +String text
+        +String? phonetic
+        +String? translation
+        +String? audioPath
+        +int durationMs
+    }
+
+    class Recording {
+        +int? id
+        +int? sentenceId
+        +String filePath
+        +int durationMs
+        +int sampleRate
+        +int channels
+        +String source
+        +DateTime createdAt
+        +String? waveformJson
+        +String? segmentJson
+        +String? f0Json
+    }
+
+    class SelfEvaluation {
+        +int? id
+        +int recordingId
+        +int fluency
+        +int accuracy
+        +int completeness
+        +String? note
+        +DateTime createdAt
+    }
+
+    class ReviewItem {
+        +int? id
+        +int? sentenceId
+        +int? recordingId
+        +String type
+        +DateTime createdAt
+        +DateTime? nextReviewAt
+        +int intervalDays
+        +double easeFactor
+        +int repetitions
+    }
+
+    class Segment {
+        +int startMs
+        +int endMs
+        +String? text
+    }
+
+    class WaveformData {
+        +List~double~ peaks
+        +List~double~ rms
+        +int sampleRate
+        +int durationMs
+        +int bucketCount
+    }
+
+    class F0Point {
+        +double timeMs
+        +double freqHz
+        +double confidence
+    }
+
+    class AudioRecorder {
+        +bool get isRecording
+        +Stream~int~ amplitudeStream
+        +Future~void~ start()
+        +Future~Recording~ stop()
+        +Future~void~ cancel()
+    }
+
+    class AudioPlayerController {
+        +Future~void~ load(String path)
+        +Future~void~ play()
+        +Future~void~ pause()
+        +Future~void~ seek(int ms)
+        +Future~void~ setSpeed(double speed)
+        +void setClip(int startMs, int endMs)
+        +Stream~int~ positionStream
+        +Stream~bool~ playingStream
+        +Stream~void~ completedStream
+    }
+
+    class PcmReader {
+        +WavHeader readHeader(String path)
+        +Float64List readMono(String path)
+    }
+
+    class WaveformExtractor {
+        +WaveformData extract(Float64List samples, int sampleRate, int bucketCount)
+    }
+
+    class SentenceSegmenter {
+        +List~Segment~ segment(Float64List samples, int sampleRate, SegmentConfig config)
+    }
+
+    class F0Extractor {
+        <<abstract>>
+        +Future~List~F0Point~~ extract(Float64List samples, int sampleRate)
+    }
+
+    class PlaceholderF0Extractor {
+        +Future~List~F0Point~~ extract(Float64List samples, int sampleRate)
+    }
+
+    class AbLoopController {
+        +void setPointA(int ms)
+        +void setPointB(int ms)
+        +void clear()
+        +void setRepeatCount(int n)
+        +void setInterval(int ms)
+        +bool get isActive
+    }
+
+    class FollowReadSession {
+        +FollowReadPhase phase
+        +Future~void~ start(Sentence s)
+        +void onOriginalComplete()
+        +Future~void~ startRecording()
+        +Future~void~ stopRecording(String path)
+        +Future~void~ playOriginal()
+        +Future~void~ playMine()
+        +Future~void~ saveEvaluation(SelfEvaluation e)
+        +Future~void~ markReview()
+    }
+
+    class AppDatabase {
+        +Future~void~ init()
+        +Database get db
+    }
+
+    class RecordingRepository {
+        +Future~int~ insert(Recording r)
+        +Future~List~Recording~~ list()
+        +Future~Recording?~ getById(int id)
+        +Future~void~ update(Recording r)
+        +Future~void~ delete(int id)
+    }
+    class SentenceRepository {
+        +Future~void~ seed(List~Sentence~ s)
+        +Future~List~Sentence~~ list()
+    }
+    class EvaluationRepository {
+        +Future~int~ insert(SelfEvaluation e)
+        +Future~List~SelfEvaluation~~ byRecording(int recordingId)
+    }
+    class ReviewRepository {
+        +Future~int~ insert(ReviewItem r)
+        +Future~List~ReviewItem~~ due()
+        +Future~void~ update(ReviewItem r)
+    }
+
+    Recording "N" --> "1" Sentence : belongs to
+    Recording "1" --> "0..1" SelfEvaluation : has
+    ReviewItem "N" --> "0..1" Sentence : references
+    FollowReadSession ..> AudioPlayerController : uses
+    FollowReadSession ..> AudioRecorder : uses
+    FollowReadSession ..> WaveformExtractor : uses
+    AbLoopController ..> AudioPlayerController : drives
+    WaveformExtractor ..> PcmReader : reads
+    SentenceSegmenter ..> PcmReader : reads
+    RecordingRepository ..> AppDatabase
+    EvaluationRepository ..> AppDatabase
+    ReviewRepository ..> AppDatabase
+    SentenceRepository ..> AppDatabase

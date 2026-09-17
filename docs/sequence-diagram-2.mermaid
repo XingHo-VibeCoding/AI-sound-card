@@ -1,0 +1,42 @@
+sequenceDiagram
+    autonumber
+    participant U as 用户
+    participant CS as CompareScreen
+    participant FR as FollowReadProvider
+    participant AP as AudioPlayerController
+    participant AR as AudioRecorder
+    participant WP as WaveformProvider
+    participant Repo as Evaluation/ReviewRepository
+
+    U->>CS: 进入某句练习
+    CS->>FR: start(sentence)
+    FR->>AP: load(原声) + setSpeed(当前档位)
+    FR->>AP: play()
+    FR-->>CS: phase=playingOriginal
+    AP-->>FR: completed 回调
+    FR-->>CS: phase=recording(自动切换)
+
+    U->>CS: 按住说话跟读
+    CS->>FR: startRecording()
+    FR->>AR: start()
+    U->>CS: 松开
+    CS->>FR: stopRecording(filePath)
+    FR->>AR: stop()
+    FR-->>CS: phase=comparing
+
+    FR->>WP: extract(原声) + extract(我的录音)
+    WP-->>FR: WaveformData x2
+    FR-->>CS: 展示重叠波形
+
+    U->>CS: A/B 一键切换播放
+    CS->>FR: playOriginal() / playMine()
+    FR->>AP: seek + play()
+
+    U->>CS: 三维自评(流利/准确/完整 1-5)
+    CS->>FR: saveEvaluation(eval)
+    FR->>Repo: insert(SelfEvaluation)
+
+    U->>CS: 标错 → 进复习池
+    CS->>FR: markReview()
+    FR->>Repo: insert(ReviewItem)
+    FR-->>CS: phase=done

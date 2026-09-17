@@ -1,0 +1,40 @@
+sequenceDiagram
+    autonumber
+    participant U as 用户
+    participant H as HoldToTalkButton(Listener)
+    participant RP as RecorderProvider
+    participant AR as AudioRecorder
+    participant Repo as RecordingRepository
+    participant WP as WaveformProvider
+
+    U->>H: PointerDownEvent
+    H->>RP: startHoldToTalk()
+    RP->>AR: start()
+    AR-->>RP: duration/amplitude 流
+    RP-->>H: state=recording
+
+    alt 手指滑出按钮(PointerMoveEvent 越界)
+        H->>RP: markWillCancel()
+        RP-->>H: state=willCancel(显示"上滑取消")
+        U->>H: PointerUpEvent(已在界外)
+        H->>RP: cancelHoldToTalk()
+        RP->>AR: cancel() 丢弃
+        RP-->>H: state=idle
+    else 手指在按钮内松开
+        U->>H: PointerUpEvent(在按钮内)
+        H->>RP: stopHoldToTalk()
+        RP->>AR: stop() → filePath + durationMs
+        alt durationMs < 1000
+            RP->>AR: cancel() 丢弃
+            RP-->>H: 提示"太短，已丢弃"
+        else durationMs >= 1000
+            RP->>Repo: insert(Recording)
+            Repo-->>RP: id
+            RP->>WP: 异步 extract(波形)
+            WP-->>RP: WaveformData
+            RP->>Repo: update(waveformJson)
+            RP-->>H: 完成，进入对比/保存
+        end
+    end
+
+    Note over H: PointerCancelEvent(系统抢占)→ cancel() 兜底

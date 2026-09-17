@@ -1,0 +1,143 @@
+@page {
+  size: A4;
+  margin: 1.8cm 1.6cm 2cm 1.6cm;
+}
+
+html {
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+body {
+  font-family: "Microsoft YaHei", "PingFang SC", "SimSun", sans-serif;
+  font-size: 10.5pt;
+  line-height: 1.7;
+  color: #1a1a1a;
+  margin: 0;
+}
+
+h1 {
+  font-size: 19pt;
+  font-weight: 600;
+  color: #0f6e56;
+  border-bottom: 3px solid #0f6e56;
+  padding-bottom: 8px;
+  margin: 0 0 6px 0;
+}
+
+h2 {
+  font-size: 14.5pt;
+  font-weight: 600;
+  color: #1a1a1a;
+  border-bottom: 1.5px solid #d0d0d0;
+  padding-bottom: 4px;
+  margin: 22px 0 10px 0;
+}
+
+h3 {
+  font-size: 12.5pt;
+  font-weight: 600;
+  color: #2c2c2c;
+  margin: 16px 0 6px 0;
+}
+
+h4 {
+  font-size: 11pt;
+  font-weight: 600;
+  color: #444;
+  margin: 12px 0 4px 0;
+}
+
+p {
+  margin: 6px 0;
+}
+
+strong {
+  font-weight: 600;
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 8px 0;
+  font-size: 9pt;
+  line-height: 1.5;
+  page-break-inside: auto;
+}
+
+th {
+  background: #e8f4ef;
+  color: #085041;
+  font-weight: 600;
+  text-align: left;
+}
+
+th, td {
+  border: 1px solid #c9c9c9;
+  padding: 5px 7px;
+  vertical-align: top;
+}
+
+tr {
+  page-break-inside: avoid;
+}
+
+tr:nth-child(even) td {
+  background: #f7faf9;
+}
+
+code {
+  font-family: "Consolas", "Courier New", monospace;
+  font-size: 8.5pt;
+  background: #f2f2f2;
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+
+pre {
+  background: #f6f6f6;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  padding: 10px 12px;
+  overflow-x: auto;
+  page-break-inside: avoid;
+}
+
+pre code {
+  background: none;
+  padding: 0;
+  font-size: 8.5pt;
+  line-height: 1.5;
+}
+
+blockquote {
+  border-left: 3px solid #0f6e56;
+  background: #f0f8f5;
+  margin: 8px 0;
+  padding: 6px 12px;
+  color: #3a3a3a;
+}
+
+blockquote p {
+  margin: 3px 0;
+}
+
+ul, ol {
+  margin: 6px 0;
+  padding-left: 22px;
+}
+
+li {
+  margin: 2px 0;
+}
+
+hr {
+  border: none;
+  border-top: 1px solid #ddd;
+  margin: 16px 0;
+}
+
+a {
+  color: #185fa5;
+  text-decoration: none;
+}
