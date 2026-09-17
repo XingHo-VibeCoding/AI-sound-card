@@ -1,0 +1,24 @@
+# ---- 环境变量与密钥：绝对不能上传 ----
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# ---- 依赖目录 ----
+node_modules/
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+
+# ---- 构建产物 ----
+dist/
+build/
+*.log
+
+# ---- 编辑器与系统文件 ----
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
