@@ -6,6 +6,7 @@ import '../../engine/follow_read/follow_read_session.dart';
 import '../../models/recording.dart';
 import '../../models/self_evaluation.dart';
 import '../../models/sentence.dart';
+import '../../models/waveform_data.dart';
 import '../../state/follow_read_provider.dart';
 import '../../state/providers.dart';
 import '../widgets/hold_to_talk_button.dart';
@@ -88,7 +89,7 @@ class _CompareScreenState extends ConsumerState<CompareScreen> {
           ],
         );
       case FollowReadPhase.comparing:
-        return _ComparingView(fr: fr, sentenceId: widget.sentenceId);
+        return _ComparingView(fr: fr);
       case FollowReadPhase.done:
         return _DoneView(
           onRetry: () {

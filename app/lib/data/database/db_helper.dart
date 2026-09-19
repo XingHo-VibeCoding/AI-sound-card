@@ -1,5 +1,5 @@
 import 'package:path/path.dart' as p;
-import 'package:sqflite/sqflite.dart';
+import 'package:sqflite/sqflite.dart' hide DatabaseException;
 
 import '../../core/constants/app_constants.dart';
 import '../../core/error/app_exception.dart';

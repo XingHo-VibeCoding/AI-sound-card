@@ -17,6 +17,8 @@ import '../engine/analysis/f0_extractor.dart';
 import '../engine/analysis/sentence_segmenter.dart';
 import '../engine/analysis/waveform_extractor.dart';
 import '../engine/audio/pcm_reader.dart';
+import '../models/recording.dart';
+import '../models/sentence.dart';
 
 // ---------------------------------------------------------------------------
 // 数据库与仓库
