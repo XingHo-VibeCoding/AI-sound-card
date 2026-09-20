@@ -1,0 +1,15 @@
+# AI 记忆卡 · 服务端依赖（Python 3.13）
+# 安装：python -m venv .venv  →  .venv/Scripts/python -m pip install -r requirements.txt
+
+# Web 框架 + ASGI 服务器
+fastapi>=0.115,<1.0
+uvicorn[standard]>=0.30,<1.0
+
+# ORM + 数据库迁移
+sqlalchemy>=2.0,<3.0
+alembic>=1.13,<2.0
+psycopg[binary]>=3.1,<4.0     # 生产 PostgreSQL 驱动（[binary] 免装 libpq）
+
+# 配置（从环境变量 / .env 读取）
+pydantic>=2.7,<3.0
+pydantic-settings>=2.2,<3.0
