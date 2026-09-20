@@ -2,7 +2,7 @@
 
 > **项目名称**：AI 记忆卡（AI Memory Card）
 > **文档类型**：技术设计文档（Technical Design Document）
-> **版本**：**v0.3**（2026-09-21 按「严格模板」重写：新增方案 A/B 对比、项目结构、数据对象与字段、错误处理、环境变量、部署与迁移；并修正 v0.2 两处「文档与现实不符」）
+> **版本**：**v0.4**（2026-09-21 补「可追溯性」：第 14 章新增「页面/数据表/接口/MVP 动作」四张对照表 + 线上持久化说明；并补上「标签关联 T-4 无写入/拉取路径」的缺口——标签随记忆 `tag_ids` 同步）
 > **编制日期**：2026-09-21
 > **当前阶段**：Vibe Coding 五步工作流 · 第 3 步（技术设计）
 > **上游文档**：`PRD.md`（v0.5，需求规格）
@@ -11,7 +11,17 @@
 
 ---
 
-## 0. 本版变更（v0.2 → v0.3）
+## 0. 本版变更
+
+### 0.1 v0.3 → v0.4（本轮：可追溯性自检）
+
+| # | 变更 | 起因 |
+|---|---|---|
+| 1 | **重写第 14 章为「与 PRD 的对应关系（可追溯性）」** —— 新增 **14.1 页面→项目结构**、**14.3 数据表→页面+接口**、**14.4 MVP 动作→API/本地替代**、**14.5 线上持久化说明** 四张表 | 用户任务：能指着某张表说出它显示在哪、由谁读写；每个 MVP 动作有 API 或本地替代；线上持久化有说明 |
+| 2 | 🔧 **补上「标签关联（T-4 `MemoryTag`）」的写入/拉取缺口**：原 16 个接口里，标签本身的读写有 `PUT/GET /tags`，但**记忆↔标签的关联既没有写接口、也没有拉取路径**（`PUT /memories/{id}` 请求体不含标签、`GET /memories` 不返回标签、`change_log` 的 `memory_tag` 无对应拉取端点） | 14.4「每个 MVP 动作都有 API/本地」逐条核对时暴露 |
+| 3 | 🔧 **标签随记忆同步**：`PUT /memories/{id}` 请求体新增 `tag_ids`；`GET /memories` 每条返回 `tag_ids`；服务端按 `tag_ids` diff 维护 `memory_tags`；`change_log.entity=memory_tag` 降级为兜底审计、不作为同步依据 | 承接变更 2，最小闭环 |
+
+### 0.2 v0.2 → v0.3
 
 | # | 变更 | 起因 |
 |---|---|---|
@@ -730,6 +740,8 @@ T-6 AppMeta（全局单行，无外键）
 **索引**：`INDEX (user_id, seq)`。
 
 > **为什么必须建**：没有它，同步问题（「这条为什么没同步过去」）**几乎无法定位** —— 服务端的当前状态无法回答「某个时间点之后发生了什么变更」。这是 §9.5 可观测性的基础。
+>
+> **关于 `entity=memory_tag`**：自 v0.4 起，记忆↔标签关联随**记忆 upsert** 走（`PUT /memories/{id}` 的 `tag_ids`），`memory_tags` 的增删是记忆 upsert 的**副作用**；因此 `change_log` 不单独记录 `memory_tag` 变更，`entity=memory_tag` 保留仅为兜底审计，不作为同步拉取依据（见 §14.3）。
 
 ### 6.4 客户端 ↔ 服务端字段映射
 
@@ -744,7 +756,8 @@ T-6 AppMeta（全局单行，无外键）
 | `T-2.deleted_at` | `memories.deleted_at` | 同值，墓碑 |
 | `T-2.updated_at` | `memories.updated_at` | 同值，**冲突判定依据** |
 | `T-2.server_version` | `memories.server_version` | 服务端权威，客户端只读回写 |
-| `T-3` / `T-4` / `T-5` | `tags` / `memory_tags` / `settings` | 同上逻辑 |
+| `T-3` / `T-5` | `tags` / `settings` | 同上逻辑 |
+| `T-4`（`memory_tags`） | `memory_tags` | 随 `PUT /memories/{id}` 的 `tag_ids` diff 同步；拉取时随 `GET /memories` 的 `tag_ids` 重建（见 §14.3） |
 | `T-7.pull_cursor` | `change_log.seq` | 客户端游标 ↔ 服务端审计序号 |
 | `T-6 AppMeta` | — | 仅本地；服务端版本由 **Alembic** 管 |
 
@@ -824,7 +837,8 @@ T-6 AppMeta（全局单行，无外键）
   "created_at": 1789000000000,
   "updated_at": 1789000000000,
   "deleted_at": null,
-  "client_version": "1.0.0"
+  "client_version": "1.0.0",
+  "tag_ids": ["7f3a...", "c2d9..."]
 }
 // 响应 200
 {
@@ -836,6 +850,8 @@ T-6 AppMeta（全局单行，无外键）
 ```
 
 > **幂等语义**：服务端以 `{id}` 为主键。不存在 → 新建；存在且 `updated_at` 相同或更旧 → **返回 `unchanged`，不覆盖**；`updated_at` 更新 → 覆盖并 `server_version + 1`。
+>
+> **`tag_ids` 语义（标签随记忆同步，补 T-4 关联的写入路径）**：`tag_ids` 是这条记忆当前挂的**全部标签 id**。服务端据此对 `memory_tags` 做 **diff**（新增则插入、缺省则删除），保证「打标签 / 移除标签」这个 MVP 动作有落点（见 §14.3）。标签本身的新建走 `PUT /tags/{id}`。
 
 #### `DELETE /api/v1/memories/{id}`
 
@@ -851,11 +867,13 @@ T-6 AppMeta（全局单行，无外键）
 ```json
 // 响应 200
 {
-  "items": [ { "...": "含已删除项（墓碑），字段带 deleted_at" } ],
+  "items": [ { "...": "含已删除项（墓碑），字段带 deleted_at；每条带 tag_ids：[\"7f3a...\"]" } ],
   "next_cursor": "1234",    // = 本批 change_log.seq 的最大值
   "has_more": false
 }
 ```
+
+> **每条 `items[i].tag_ids`**：让其他设备在拉取时重建本地 **T-4 `MemoryTag`**（关联不单独建拉取端点，随记忆一起下发，见 §14.3）。
 
 #### `POST /api/v1/memories/{id}/audio`
 
@@ -1411,9 +1429,33 @@ t4  用户在另一台设备点播放   → 404 → E4「音频文件不可用�
 
 ---
 
-## 14. 与 PRD 功能的对应关系
+## 14. 与 PRD 的对应关系（可追溯性）
 
-### 14.1 功能 → 模块映射
+> **本章目的（可追溯性自检）**：把「页面、功能、数据表、接口、项目结构」五件事对起来，满足三条硬性检查——
+> ① **能指着任意一张表，说出它显示在哪个页面、由哪个接口读写**（14.3）；
+> ② **每个 MVP 写入/读取动作都有 API 或本地替代方案**（14.4）；
+> ③ **线上数据库持久化有明确说明**（14.5）。
+
+### 14.1 页面 → 项目结构映射（12 页全覆盖）
+
+> 结论：**P-01 ~ P-12 全部能在第 5 章项目结构里找到对应模块**，无「有页面无模块」或「有模块无页面」的空转。
+
+| 页面 | 客户端模块（项目结构位置） | 读写的数据 |
+|---|---|---|
+| P-01 启动/欢迎页 | `router/app_router.dart`（路由门）+ `state/auth_provider.dart`（判登录态） | 读 T-1 `is_logged_in` |
+| P-02 登录页 | `ui/pages/` + `state/auth_provider.dart` + `data/remote/auth_api.dart` | 写 T-1 token（安全存储） |
+| P-03 注册页 | 同上（`auth_api.dart` 调注册） | 写 T-1 token（安全存储） |
+| P-04 首页/记忆列表 | `state/memory_list_provider.dart` + `data/repositories/memory_repository.dart` + 录音主按钮（`record`） | 读 T-2；写音频文件 |
+| P-05 录音进行中 | 录音 Provider（`record` 插件）+ `data/local` 边录边落盘 | 写音频文件 + T-2 |
+| P-06 记忆详情 | `state/memory_detail_provider.dart` + 播放器（`just_audio`）+ 本机文件读取 | 读 T-2、T-3/T-4、音频文件 |
+| P-07 记忆编辑 | 详情 Provider + `memory_repository.dart` | 写 T-2 `title`/`text_content`、T-3/T-4 |
+| P-08 速记输入 | 速记入口 + `memory_repository.dart` | 写 T-2（`text` 型） |
+| P-09 设置页 | `state/setting_provider.dart` + 文件大小统计 + `state/auth_provider.dart`（退出） | 读 T-1、T-5、T-6、T-7 |
+| P-10 空状态 | `state/memory_list_provider.dart`（空列表判定）+ `ui/widgets/` | 读 T-2（条数 = 0） |
+| P-11 二次确认弹窗 | `ui/widgets/` + `memory_repository.dart`（删除） | 写 T-2 `is_deleted`/`deleted_at` |
+| P-12 同步状态视图 | `state/sync_provider.dart` + T-7 | 读 T-7、T-2 `sync_status` |
+
+### 14.2 功能 → 模块映射
 
 | PRD 功能 | 客户端 | 服务端 | 主要页面 |
 |---|---|---|---|
@@ -1425,7 +1467,62 @@ t4  用户在另一台设备点播放   → 404 → E4「音频文件不可用�
 | F-06 设置 | 设置 Provider + 文件大小统计 | `settings` 路由 | P-09 |
 | **F-07 云同步** | **同步引擎 + 离线队列 + T-7** | **`sync_service` + `change_log` + 对象存储** | P-04、P-06、P-09、**P-12** |
 
-### 14.2 架构对 PRD 硬性要求的支撑
+### 14.3 数据表 → 页面 + 接口（指着表就能答）
+
+| 表 | 显示在哪个页面 | 读（接口 / 本地） | 写（接口 / 本地） |
+|---|---|---|---|
+| T-1 `User` | P-09 设置页（账号名、退出） | `GET /me`；本地 `user_dao` | `POST /auth/register`、`/auth/login`、`/auth/logout`（token 只落**安全存储**） |
+| T-2 `Memory` | P-04 列表、P-06 详情、P-07 编辑 | 本地 `memory_dao` 查询（展示**不依赖网络**）；`GET /memories`（仅同步拉取） | 本地 `memory_dao`；同步 `PUT /memories/{id}` |
+| T-3 `Tag` | P-06 详情、P-07 编辑（标签区） | 本地 `tag_dao`；`GET /tags`（同步拉取） | 本地 `tag_dao`；同步 `PUT /tags/{id}` |
+| T-4 `MemoryTag` | P-06 详情、P-07 编辑（记忆挂的标签） | 本地 JOIN（T-2 ⋈ T-4 ⋈ T-3）；`GET /memories` 返回 `tag_ids` | 本地写入；随 `PUT /memories/{id}` 的 `tag_ids` 同步（服务端 diff 维护） |
+| T-5 `Setting` | P-09 设置页 | 本地 `setting_dao`；`GET /settings` | 本地 `setting_dao`；`PUT /settings/{key}` |
+| T-6 `AppMeta` | （内部，不显示） | 本地读 `db_version` | 首次初始化写入；**仅本地** |
+| T-7 `SyncState` | P-12 同步状态、P-04 同步徽标 | 本地 `sync_state_dao` | 同步引擎维护；**仅本地** |
+| `users`（服务端） | — | 服务端内部 | `POST /auth/register` |
+| `memories`（服务端） | — | `GET /memories` | `PUT` / `DELETE /memories/{id}` |
+| `tags`（服务端） | — | `GET /tags` | `PUT` / `DELETE /tags/{id}` |
+| `memory_tags`（服务端） | — | 随 `GET /memories` 的 `tag_ids` 返回 | 随 `PUT /memories/{id}` 的 `tag_ids` diff 维护 |
+| `settings`（服务端） | — | `GET /settings` | `PUT /settings/{key}` |
+| `change_log`（服务端） | — | 内部（游标 = `seq`） | 服务端每次 upsert/delete 自动写 |
+
+> **本地表 vs 服务端表的读法**：展示**永远读本地**（offline-first）；`GET /xxx` 只服务于**同步拉取**，不是页面数据源。唯一例外是「换新设备首次登录」时，本地空库经 `GET /memories` + `GET /tags` + `GET /settings` 拉全量重建。
+
+### 14.4 MVP 动作 → API / 本地替代方案
+
+> 结论：**7 个功能共 17 个写入/读取动作，除「注册/登录」两项（本质必须在线）外，全部有本地替代方案**，无「动作没有落点」的缺口。
+
+| MVP 动作 | 读/写 | API | 本地替代（离线） |
+|---|---|---|---|
+| 注册 | 写 | `POST /auth/register` | 无（注册**必须在线**） |
+| 登录 | 写 | `POST /auth/login` | 无；但**已登录态可离线保持**（`T-1.is_logged_in` + refresh token 续期） |
+| 退出登录 | 写 | `POST /auth/logout` | ✅ 本地清 token + `is_logged_in=false`（离线也能退） |
+| 快速录音 | 写 | 同步 `PUT /memories/{id}` + `POST /memories/{id}/audio` | ✅ 先落本地（音频文件 + T-2，`sync_status=pending`） |
+| 速记文字 | 写 | 同步 `PUT /memories/{id}` | ✅ 本地 T-2 |
+| 看记忆列表 | 读 | — | ✅ 本地 `memory_dao` |
+| 看详情 / 回听 | 读 | `GET /memories/{id}/audio`（仅他端音频缺失时） | ✅ 本机文件 + 本地 DAO |
+| 编辑标题 / 文字 | 写 | 同步 `PUT /memories/{id}` | ✅ 本地 T-2 |
+| 打标签 / 移除标签 | 写 | 同步 `PUT /memories/{id}`（`tag_ids`）+ 新建走 `PUT /tags/{id}` | ✅ 本地 T-3 / T-4 |
+| 删除记忆 | 写 | `DELETE /memories/{id}` | ✅ 本地墓碑 + 文件入 `trash/` |
+| 查看占用空间 | 读 | — | ✅ 本地文件大小实时累加 |
+| 查看同步状态 | 读 | — | ✅ 本地 T-7 + T-2 `sync_status` |
+| 上云 | 写 | `PUT /memories` + `POST audio` + `PUT /tags` + `PUT /settings` | —（同步动作本身） |
+| 拉取 | 读 | `GET /memories` + `GET /tags` + `GET /settings` | —（同步动作本身） |
+
+### 14.5 线上数据库持久化说明
+
+> **一句话**：服务端数据**全部落 PostgreSQL（磁盘持久化）与对象存储（冗余持久化），非内存态**；服务端重启 / 崩溃 / 容器重建都不丢数据。
+
+| 数据 | 持久化到哪 | 持久化机制 | 崩溃/重启后 |
+|---|---|---|---|
+| 账号（`users`） | 托管 PostgreSQL | PG 自身 WAL + 定期快照备份 | ✅ 不丢 |
+| 记忆元数据（`memories` / `tags` / `memory_tags` / `settings`） | 托管 PostgreSQL | 同上 | ✅ 不丢 |
+| 变更审计（`change_log`） | 托管 PostgreSQL | 同上（是增量同步游标的来源） | ✅ 不丢 |
+| 音频文件 | **对象存储**（S3 兼容：R2/COS/OSS/Supabase Storage，待定见 §15 T-2） | 对象存储多副本冗余 | ✅ 不丢 |
+| JWT 凭据 | 不落库（无状态） | 由 `access_token`/`refresh_token` 自证 | 无需持久化 |
+
+> **客户端是主副本、云端是同步与备份**（承接 PRD 6.7）：即使服务端某张表数据丢失，用户本机 SQLite + 音频文件仍在，可通过「重新上云」恢复；反之若用户换机，云端 PostgreSQL + 对象存储是唯一数据源，故其持久化不可省。
+
+### 14.6 架构对 PRD 硬性要求的支撑
 
 | PRD 要求 | 架构上怎么保证 |
 |---|---|
@@ -1455,6 +1552,7 @@ t4  用户在另一台设备点播放   → 404 → E4「音频文件不可用�
 | T-7 | **单文件 `MAX_UPLOAD_MB` 是否够** | 待定：30 分钟 PCM WAV ≈ 150MB，而默认上限 50MB | 需要「限制录音时长」或「上传前压缩」二选一，否则 E14 会频繁触发 |
 | T-8 | **`trash/` 暂存区保留多久**（§13.5 修法的参数） | **默认 7 天**（可调） | 影响磁盘回收速度与同步失败时的数据保留窗口 |
 | T-9 | 本机局域网 IP 是否固定 | 未定 | 影响开发期联调方式（推荐固定用 `adb reverse` 规避） |
+| T-10 | ~~标签关联（T-4）如何同步~~ | ✅ **已决定（v0.4）**：随记忆 `tag_ids` 同步，见 §14.3 / §7.2 | 关闭了「打标签/移除标签」无写入/拉取路径的缺口 |
 
 ---
 
@@ -1486,7 +1584,8 @@ t4  用户在另一台设备点播放   → 404 → E4「音频文件不可用�
 | 服务端表与 PRD 数据要求是否冲突 | ✅ 无冲突；服务端表是 PRD 实体的服务端映射，主键规则遵循 PRD 6.6 第 8 条 |
 | 技术栈与 `app/` 已有工程是否一致 | ✅ 一致并**增量**扩展（新增 dio / secure_storage / connectivity_plus / uuid） |
 | 分层与 `docs/system_design.md`（M1）是否一致 | ✅ 客户端一致（新增 `sync/` 层） |
-| 接口是否覆盖 PRD K 组全部验收（AC-K1 ~ K10） | ✅ 逐条映射见 §14.2 |
+| 接口是否覆盖 PRD K 组全部验收（AC-K1 ~ K10） | ✅ 逐条映射见 §14.6 |
+| **可追溯性自检（页面/数据表/接口/MVP 动作三查）** | 🔧 **暴露「T-4 标签关联无写入/拉取路径」→ 已补**（`tag_ids` 随记忆同步，§14.3 / §7.2）；页面 P-01~P-12 全覆盖（§14.1） |
 | **部署方案 vs 本机现实** | 🔧 **v0.2 不一致（Docker）→ v0.3 已修正** |
 | **Python 版本 vs 本机现实** | 🔧 **v0.2 不一致（3.12）→ v0.3 已修正（3.13）** |
 | 界面/页面编号引用（P-01 ~ P-12、F-01 ~ F-07、E1 ~ E17、AC-*） | ✅ 已与 PRD v0.5 对齐；本轮未新增编号 |
