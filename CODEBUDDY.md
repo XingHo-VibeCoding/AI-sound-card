@@ -57,6 +57,68 @@
 
 ---
 
+## 八、技术规范（Day 5 技术设计定稿）
+
+> 本章是「保存项目规则」这一步的产出：把 `TECH_DESIGN.md`（技术总纲，v0.3）里定稿的**硬规则**浓缩到此，供第 5 步「小步开发和迭代」起每次开发遵循。这里只存「必须遵守、不许违反」的底线，细节一律以 `TECH_DESIGN.md` 为准。
+
+### 8.1 技术栈（已定稿，不随意更换）
+
+- **客户端**：Flutter（复用 M1 工程）+ flutter_riverpod + go_router + record + just_audio + sqflite + path_provider + dio + flutter_secure_storage + connectivity_plus + uuid。
+- **服务端**：Python 3.13 / FastAPI + SQLAlchemy 2.0 + Alembic + Pydantic v2 + PostgreSQL（托管）+ Uvicorn（开发期本机直跑，免 Docker）。
+- **鉴权**：JWT 双令牌（Access + Refresh）。
+- **音频存储**：对象存储（本机磁盘仅离线开发期用）。
+
+### 8.2 项目结构（目录 + 分层依赖）
+
+- 目录：`app/` 客户端、`server/` 服务端、`docs/` 文档、`TECH_DESIGN.md` 技术总纲、`PRD.md` 需求。
+- **分层依赖（硬规则）**：客户端 `ui → state → sync → data → models → core`；服务端 `api → service → repository → models → core`。
+- **只能向下依赖，禁止反向依赖**；UI 不直接碰数据源（sqflite / HTTP / 文件路径）；models 无外部依赖；服务端路由不写业务逻辑。
+
+### 8.3 数据模型（8 条硬约定）
+
+1. 主键稳定唯一，不依赖自增序号。
+2. 所有业务数据带 `user_id`，查询强制按当前用户过滤。
+3. `created_at` / `updated_at` 成对存在，自动生成。
+4. **软删除 = 墓碑 + 音频文件解耦**：删除时写 `is_deleted=true` + `deleted_at`（墓碑），音频文件移入 `trash/` 暂存区；墓碑同步成功后才物理删文件。**只有墓碑依赖网络，音频文件不依赖。**
+5. `db_version` 存在且可读。
+6. 可空字段必须有默认值。
+7. 需上云实体必须带 `sync_status` + `updated_at`。
+8. `memory_id` / `tag_id` 由**客户端生成 UUID**，服务端沿用同一主键（幂等重试的前提）。
+
+### 8.4 同步机制（4 条规则）
+
+1. **幂等 upsert**：`PUT /memories/{id}`，id 由客户端 UUID 生成（重试不产生重复条目）。
+2. **删除靠墓碑**：删的是 `deleted_at`，不是物理行。
+3. **增量游标**：`pull_cursor = change_log.seq`，只拉变化量。
+4. **冲突**：较新者胜 + 保留冲突副本（比 `updated_at`）。
+
+### 8.5 错误处理（3 条禁令）
+
+1. 禁止静默失败（catch 后必须上报 / 改状态 / 展示）。
+2. 禁止吞掉同步失败（必须体现在 `failed_count` 与同步状态视图）。
+3. 禁止把技术错误直接给用户（翻译成「发生了什么 + 我能做什么」）。
+
+### 8.6 密钥与配置（红线）
+
+- `.env` / `*.key` / `*.pem` 永不提交；只提交 `.env.example`（键名 + 假值）。
+- 仓库不得出现真实连接串 / 密钥 / 账号密码。
+- 密钥不入镜像、不入库，只从环境变量读。
+- 提交前自检：`git diff --cached` 搜 `password` / `secret` / `postgresql://`。
+
+### 8.7 迁移（3 条铁律）
+
+1. 只加不删（加列安全，删列 / 改类型不可逆）。
+2. 先备份再升级。
+3. 迁移脚本与代码同一次提交。
+
+### 8.8 安全红线
+
+- 客户端与服务端全程 HTTPS / TLS，不接受明文 HTTP。
+- 凭据只存系统安全存储（不落普通库 / 明文文件）。
+- 密码：客户端不存明文，服务端只存加盐哈希（Argon2id 或 bcrypt）。
+
+---
+
 ## 附：AI 执行说明
 
 以上七条是规则正文。以下是配合方式的具体落地说明，用于消除歧义。
