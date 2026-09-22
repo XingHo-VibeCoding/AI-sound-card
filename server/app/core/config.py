@@ -47,7 +47,8 @@ class Settings(BaseSettings):
     max_upload_mb: int = 50
 
     # 其它
-    cors_origins: str = "http://localhost"
+    # 允许跨域的来源，逗号分隔。开发期默认放行本地网页预览端口（5500）与 Swagger 宿主。
+    cors_origins: str = "http://localhost:5500,http://127.0.0.1:5500,http://localhost,http://127.0.0.1"
     log_level: str = "INFO"
     argon2_time_cost: int = 3
 

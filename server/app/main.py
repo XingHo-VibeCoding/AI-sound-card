@@ -4,6 +4,7 @@
 """
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1.router import api_router
 from app.core.config import settings
@@ -27,6 +28,18 @@ def create_app() -> FastAPI:
     # （add_middleware 后加者为最外层）：Trace 先写 trace_id，Error 再兜底异常
     app.add_middleware(ErrorHandlingMiddleware)
     app.add_middleware(TraceMiddleware)
+
+    # CORS：放最外层，允许本地网页（localhost:5500）跨端口调用 API
+    # （对应 TECH_DESIGN §env 的 CORS_ORIGINS「为 Web 预留」，Day 7 网页版落地启用）
+    cors_origins = [o.strip() for o in settings.cors_origins.split(",") if o.strip()]
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=cors_origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
     register_exception_handlers(app)
     app.include_router(api_router, prefix="/api/v1")
     install_custom_openapi(app)
