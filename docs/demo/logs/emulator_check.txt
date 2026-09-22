@@ -1,0 +1,4 @@
+﻿emulator.exe exists: False
+AVD home: C:\Users\21001\.android\avd
+AVD home does not exist
+

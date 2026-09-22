@@ -1,0 +1,99 @@
+﻿flutter.bat : Flutter assets will be downloaded from https://storage.flutter-io
+.cn. Make sure you trust this source!
+所在位置 行:445 字符: 53
++ ... gs'; $out = & 'D:\development\flutter\bin\flutter.bat' doctor -v 2>&1 ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Flutter assets ...st this source! 
+   :String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+[鈭歖 Flutter (Channel stable, 3.47.4, on Microsoft Windows [鐗堟湰 10.0.26200.9457], locale zh-CN) [1,176ms]
+    鈥?Flutter version 3.47.4 on channel stable at D:\development\flutter
+    鈥?Upstream repository https://github.com/flutter/flutter.git
+    鈥?Framework revision 9584c6713b (11 days ago), 2026-09-10 15:25:10 -0700
+    鈥?Engine revision 06a2e2a110
+    鈥?Dart version 3.13.3
+    鈥?DevTools version 2.60.0
+    鈥?Pub download mirror https://pub.flutter-io.cn
+    鈥?Flutter download mirror https://storage.flutter-io.cn
+    鈥?Feature flags: enable-web, enable-linux-desktop, enable-macos-desktop, enable-windows-desktop, enable-android, enable-ios, cli-animations, enable-native-assets, enable-record-use, enable-swift-package-manager, omit-legacy-version-file, enable-lldb-debugging, enable-uiscene-migration
+
+[鈽燷 Windows Version (the doctor check crashed)
+    X Due to an error, the doctor check did not complete. If the error message below is not helpful, please let us know about this issue at https://github.com/flutter/flutter/issues.
+    X Error: Flutter failed to run "reg query HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion /t REG_SZ". The flutter tool cannot access the file or directory.
+      Please ensure that the SDK and/or project is installed in a location that has read/write permissions for the current user.
+    鈥?#0      throwToolExit (package:flutter_tools/src/base/common.dart:34:3)
+      #1      _throwFileSystemException (package:flutter_tools/src/base/error_handling_io.dart:1502:3)
+      #2      _handleWindowsException (package:flutter_tools/src/base/error_handling_io.dart:1492:3)
+      #3      _onProcessException (package:flutter_tools/src/base/error_handling_io.dart:1348:5)
+      #4      _run (package:flutter_tools/src/base/error_handling_io.dart:1097:7)
+      <asynchronous suspension>
+      #5      WindowsVersionExtractor.getDetails (package:flutter_tools/src/windows/windows_version_validator.dart:181:39)
+      <asynchronous suspension>
+      #6      WindowsVersionValidator.validateImpl (package:flutter_tools/src/windows/windows_version_validator.dart:83:54)
+      <asynchronous suspension>
+      #7      DoctorValidator.validate (package:flutter_tools/src/doctor_validator.dart:58:37)
+      <asynchronous suspension>
+      #8      Future.any.onValue (dart:async/future.dart:658:5)
+      <asynchronous suspension>
+
+
+[鈭歖 Android toolchain - develop for Android devices (Android SDK version 36.0.0) [5.0s]
+    鈥?Android SDK at D:\development\android-sdk
+    鈥?Emulator version unknown
+    鈥?Platform android-36, build-tools 36.0.0
+    鈥?ANDROID_HOME = D:\development\android-sdk
+    鈥?ANDROID_SDK_ROOT = D:\development\android-sdk
+    鈥?Java binary at: D:\development\JDK\bin\java
+      This JDK is specified by the JAVA_HOME environment variable.
+      To manually set the JDK path, use: `flutter config --jdk-dir="path/to/jdk"`.
+    鈥?Java version Java(TM) SE Runtime Environment (build 21.0.5+9-LTS-239)
+    鈥?All Android licenses accepted.
+
+[鈭歖 Chrome - develop for the web [579ms]
+    鈥?Chrome at C:\Program Files\Google\Chrome\Application\chrome.exe
+
+[X] Visual Studio - develop Windows apps [578ms]
+    X Visual Studio not installed; this is necessary to develop Windows apps.
+      Download at https://visualstudio.microsoft.com/downloads/.
+      Please install the "Desktop development with C++" workload, including all of its default components
+
+[!] Proxy Configuration [576ms]
+    鈥?HTTP_PROXY is set
+    ! NO_PROXY is not set
+
+[鈽燷 Connected device (the doctor check crashed)
+    X Due to an error, the doctor check did not complete. If the error message below is not helpful, please let us know about this issue at https://github.com/flutter/flutter/issues.
+    X Error: Flutter failed to run "reg query HKEY_CURRENT_USER\Software\Microsoft\Edge\BLBeacon /v version". The flutter tool cannot access the file or directory.
+      Please ensure that the SDK and/or project is installed in a location that has read/write permissions for the current user.
+    鈥?#0      throwToolExit (package:flutter_tools/src/base/common.dart:34:3)
+      #1      _throwFileSystemException (package:flutter_tools/src/base/error_handling_io.dart:1502:3)
+      #2      _handleWindowsException (package:flutter_tools/src/base/error_handling_io.dart:1492:3)
+      #3      _onProcessException (package:flutter_tools/src/base/error_handling_io.dart:1348:5)
+      #4      _run (package:flutter_tools/src/base/error_handling_io.dart:1097:7)
+      <asynchronous suspension>
+      #5      MicrosoftEdgeDevice._getSdkNameAndVersion (package:flutter_tools/src/web/web_device.dart:277:36)
+      <asynchronous suspension>
+      #6      MicrosoftEdgeDevice._meetsVersionConstraint (package:flutter_tools/src/web/web_device.dart:264:32)
+      <asynchronous suspension>
+      #7      WebDevices.pollingGetDevices (package:flutter_tools/src/web/web_device.dart:364:33)
+      <asynchronous suspension>
+      #8      PollingDeviceDiscovery._populateDevices (package:flutter_tools/src/device.dart:558:36)
+      <asynchronous suspension>
+      #9      Future.wait.<anonymous closure> (dart:async/future.dart:567:21)
+      <asynchronous suspension>
+      #10     DeviceManager.refreshAllDevices (package:flutter_tools/src/device.dart:201:40)
+      <asynchronous suspension>
+      #11     DeviceValidator.validateImpl (package:flutter_tools/src/doctor.dart:781:34)
+      <asynchronous suspension>
+      #12     DoctorValidator.validate (package:flutter_tools/src/doctor_validator.dart:58:37)
+      <asynchronous suspension>
+      #13     Future.any.onValue (dart:async/future.dart:658:5)
+      <asynchronous suspension>
+
+
+[鈭歖 Network resources [3.3s]
+    鈥?All expected network resources are available.
+
+! Doctor found issues in 4 categories.
+

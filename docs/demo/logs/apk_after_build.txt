@@ -1,0 +1,2 @@
+﻿D:\AI-sound-card\app\build\app\outputs\flutter-apk\app-debug.apk | 158257812 bytes | 09/22/2026 11:25:55
+

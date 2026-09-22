@@ -1,0 +1,14 @@
+﻿flutter.bat : Flutter assets will be downloaded from https://storage.flutter-io
+.cn. Make sure you trust this source!
+所在位置 行:445 字符: 53
++ ... gs'; $dev = & 'D:\development\flutter\bin\flutter.bat' devices 2>&1 | ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Flutter assets ...st this source! 
+   :String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+Flutter failed to run "reg query HKEY_CURRENT_USER\Software\Microsoft\Edge\BLBe
+acon /v version". The flutter tool cannot access the file or directory.
+Please ensure that the SDK and/or project is installed in a location that has r
+ead/write permissions for the current user.
+

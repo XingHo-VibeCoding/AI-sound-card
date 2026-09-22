@@ -1,0 +1,12 @@
+﻿flutter.bat : Flutter assets will be downloaded from https://storage.flutter-io
+.cn. Make sure you trust this source!
+所在位置 行:445 字符: 206
++ ... TF8; $emu = & 'D:\development\flutter\bin\flutter.bat' emulators 2>&1 ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Flutter assets ...st this source! 
+   :String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+Unable to find any emulator sources. Please ensure you have some
+Android AVD images available.
+

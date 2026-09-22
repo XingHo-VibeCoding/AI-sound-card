@@ -1,0 +1,1 @@
+﻿size=472360 bytes; sampleRate=44100; channels=1; bitsPerSample=16

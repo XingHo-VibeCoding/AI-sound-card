@@ -1,0 +1,29 @@
+﻿flutter.bat : Flutter assets will be downloaded from https://storage.flutter-io
+.cn. Make sure you trust this source!
+所在位置 行:445 字符: 90
++ ... pp'; $out = & 'D:\development\flutter\bin\flutter.bat' test 2>&1 | Ou ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Flutter assets ...st this source! 
+   :String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+00:00 +0: loading D:/AI-sound-card/app/test/ab_loop_controller_test.dart
+00:00 +0 -1: loading D:/AI-sound-card/app/test/ab_loop_controller_test.dart [E]
+  Failed to load "D:/AI-sound-card/app/test/ab_loop_controller_test.dart": Unable to connect to flutter_tester process: WebSocketException: Invalid WebSocket upgrade request
+00:00 +0 -2: loading D:/AI-sound-card/app/test/follow_read_session_test.dart [E]
+  Failed to load "D:/AI-sound-card/app/test/follow_read_session_test.dart": Unable to connect to flutter_tester process: WebSocketException: Invalid WebSocket upgrade request
+00:00 +0 -3: loading D:/AI-sound-card/app/test/pcm_reader_test.dart [E]
+  Failed to load "D:/AI-sound-card/app/test/pcm_reader_test.dart": Unable to connect to flutter_tester process: WebSocketException: Invalid WebSocket upgrade request
+00:00 +0 -4: loading D:/AI-sound-card/app/test/sentence_segmenter_test.dart [E]
+  Failed to load "D:/AI-sound-card/app/test/sentence_segmenter_test.dart": Unable to connect to flutter_tester process: WebSocketException: Invalid WebSocket upgrade request
+00:00 +0 -5: loading D:/AI-sound-card/app/test/waveform_extractor_test.dart [E]
+  Failed to load "D:/AI-sound-card/app/test/waveform_extractor_test.dart": Unable to connect to flutter_tester process: WebSocketException: Invalid WebSocket upgrade request
+00:00 +0 -5: Some tests failed.
+
+Failing tests:
+  D:/AI-sound-card/app/test/ab_loop_controller_test.dart: loading D:/AI-sound-card/app/test/ab_loop_controller_test.dart
+  D:/AI-sound-card/app/test/follow_read_session_test.dart: loading D:/AI-sound-card/app/test/follow_read_session_test.dart
+  D:/AI-sound-card/app/test/pcm_reader_test.dart: loading D:/AI-sound-card/app/test/pcm_reader_test.dart
+  D:/AI-sound-card/app/test/sentence_segmenter_test.dart: loading D:/AI-sound-card/app/test/sentence_segmenter_test.dart
+  D:/AI-sound-card/app/test/waveform_extractor_test.dart: loading D:/AI-sound-card/app/test/waveform_extractor_test.dart
+

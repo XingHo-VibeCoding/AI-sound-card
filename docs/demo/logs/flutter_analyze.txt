@@ -1,0 +1,25 @@
+﻿flutter.bat : Flutter assets will be downloaded from https://storage.flutter-io
+.cn. Make sure you trust this source!
+所在位置 行:445 字符: 90
++ ... pp'; $out = & 'D:\development\flutter\bin\flutter.bat' analyze 2>&1 | ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Flutter assets ...st this source! 
+   :String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+Analyzing app...                                                
+
+   info - 'always' is deprecated and shouldn't be used. Use ShowValueIndicator.onDrag. This feature was deprecated after v3.28.0-1.0.pre. Try replacing the use of the deprecated member with the replacement - lib\core\theme\app_theme.dart:55:48 - deprecated_member_use
+   info - The 'if' statement could be replaced by a null-aware assignment. Try using the '??=' operator to conditionally assign a value - lib\engine\ab_loop\ab_loop_controller.dart:83:5 - prefer_conditional_assignment
+   info - Missing a required trailing comma. Try adding a trailing comma - lib\state\player_provider.dart:118:7 - require_trailing_commas
+   info - Missing a required trailing comma. Try adding a trailing comma - lib\state\player_provider.dart:121:7 - require_trailing_commas
+   info - Missing a required trailing comma. Try adding a trailing comma - lib\state\player_provider.dart:124:7 - require_trailing_commas
+   info - Missing a required trailing comma. Try adding a trailing comma - lib\state\player_provider.dart:133:7 - require_trailing_commas
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - lib\ui\screens\practice_screen.dart:140:9 - prefer_const_constructors
+   info - Unnecessary braces in a string interpolation. Try removing the braces - lib\ui\screens\review_pool_screen.dart:79:12 - unnecessary_brace_in_string_interps
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\ui\widgets\hold_to_talk_button.dart:123:37 - deprecated_member_use
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - lib\ui\widgets\waveform_comparison_view.dart:54:9 - prefer_const_constructors
+   info - The private field _duration could be 'final'. Try making the field 'final' - test\ab_loop_controller_test.dart:19:7 - prefer_final_fields
+
+11 issues found. (ran in 7.4s)
+
