@@ -54,6 +54,9 @@ class MemoryUpsertResponse(BaseModel):
     server_version: int
     status: Literal["upserted", "unchanged"]
     conflict: None = None
+    # 命中 unchanged 时，请求内容是否与库中不同：True 表示客户端改了内容但
+    # updated_at 未增大（本次未写入），供客户端识别「静默丢弃」并重推。
+    content_differs: bool = False
 
 
 class MemoryDeleteResponse(BaseModel):

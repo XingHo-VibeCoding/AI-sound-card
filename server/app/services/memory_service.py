@@ -54,6 +54,15 @@ def _deleted_at_dt(ms: int | None) -> datetime | None:
     return _ms_to_dt(ms)
 
 
+def _dt_eq(a: datetime | None, b: datetime | None) -> bool:
+    """比较两个可空 datetime；None 与 None 相等，按 epoch 毫秒对齐（兼容 SQLite naive）。"""
+    if (a is None) != (b is None):
+        return False
+    if a is None:
+        return True
+    return _dt_to_epoch_ms(a) == _dt_to_epoch_ms(b)
+
+
 def _to_item(memory: Memory, tag_ids: list[uuid.UUID]) -> MemoryItem:
     return MemoryItem(
         id=memory.id,
@@ -166,6 +175,47 @@ def _diff_memory_tags(
             row.server_version = server_version
 
 
+def _content_differs(
+    db: Session,
+    memory: Memory,
+    user_id: uuid.UUID,
+    payload: MemoryUpsertRequest,
+) -> bool:
+    """判断「请求内容」与「库中内容」是否不同（供 unchanged 分支区分真重放/静默丢弃）。
+
+    只回答「内容变没变」，不改变写入判定：是否覆盖仍严格由 updated_at 的 LWW 决定。
+    比较范围：10 个标量 + deleted_at(归一化后) + tag_ids(过滤后 vs 现有活跃)。
+    """
+    if payload.type != memory.type:
+        return True
+    if payload.title != memory.title:
+        return True
+    if payload.text_content != memory.text_content:
+        return True
+    if payload.audio_object_key != memory.audio_object_key:
+        return True
+    if payload.audio_duration_ms != memory.audio_duration_ms:
+        return True
+    if payload.audio_format != memory.audio_format:
+        return True
+    if payload.audio_size_bytes != memory.audio_size_bytes:
+        return True
+    if payload.source != memory.source:
+        return True
+    if payload.record_status != memory.record_status:
+        return True
+    if payload.client_version != memory.client_version:
+        return True
+    # deleted_at 先归一化（0/None 都算未删除）再比
+    if not _dt_eq(_deleted_at_dt(payload.deleted_at), memory.deleted_at):
+        return True
+    # tag_ids：请求侧过滤成有效标签，与库中现有活跃关联比较
+    requested_tags = _filter_valid_tags(db, user_id, set(payload.tag_ids))
+    if requested_tags != set(_active_tag_ids(db, memory.id)):
+        return True
+    return False
+
+
 def upsert_memory(
     db: Session,
     user_id: uuid.UUID,
@@ -175,11 +225,10 @@ def upsert_memory(
     """幂等 upsert（AC-K6）。"""
     memory = _get_memory_or_403(db, memory_id, user_id)
     incoming_updated_at = payload.updated_at
-    # 未就绪标签（不存在/非本用户/已删除）跳过，不阻断记忆本身写入
-    valid_tag_ids = _filter_valid_tags(db, user_id, set(payload.tag_ids))
 
     if memory is None:
-        # 不存在 → 新建
+        # 不存在 → 新建；未就绪标签（不存在/非本用户/已删除）跳过，不阻断记忆本身写入
+        valid_tag_ids = _filter_valid_tags(db, user_id, set(payload.tag_ids))
         new_sv = next_server_version(db, user_id)
         memory = Memory(
             id=memory_id,
@@ -206,15 +255,34 @@ def upsert_memory(
         db.commit()
         return MemoryUpsertResponse(id=memory_id, server_version=new_sv, status="upserted")
 
-    # 已存在：updated_at 相同或更旧 → 不覆盖（幂等命中）
+    # 已存在：updated_at 相同或更旧 → 不覆盖（幂等命中 / LWW：较新者胜）
+    #
+    # 为什么 LWW 不覆盖：updated_at 较新者胜是同步冲突的既定契约（§13.2），不要改，
+    #   否则会把「服务端更新的版本」退回成客户端的旧版本。
+    # 为什么必须回传 content_differs：LWW 下「客户端改了内容但没能增大 updated_at」
+    #   （离线写、时钟回拨、忘改时间戳等）会被静默丢弃——客户端只看到 200 以为同步成功，
+    #   这是最贵的「HTTP 200 但改动消失」。回传该标记让客户端能识别并重推，避免静默丢数据。
     if incoming_updated_at <= _dt_to_epoch_ms(memory.updated_at):
+        differs = _content_differs(db, memory, user_id, payload)
+        if differs:
+            logger.warning(
+                "记忆 upsert：客户端内容已变更但 updated_at 未增大，本次未写入 "
+                "(memory_id=%s, client_updated_at=%s, server_updated_at=%s, server_version=%s)",
+                memory_id,
+                incoming_updated_at,
+                _dt_to_epoch_ms(memory.updated_at),
+                memory.server_version,
+            )
+        # 无论内容是否不同，都不写库、不插 change_log、不递增 server_version
         return MemoryUpsertResponse(
             id=memory_id,
             server_version=memory.server_version,
             status="unchanged",
+            content_differs=differs,
         )
 
     # 更新 → 覆盖并 server_version + 1
+    valid_tag_ids = _filter_valid_tags(db, user_id, set(payload.tag_ids))
     new_sv = next_server_version(db, user_id)
     memory.type = payload.type
     memory.title = payload.title

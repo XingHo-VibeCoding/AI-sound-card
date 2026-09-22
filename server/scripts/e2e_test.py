@@ -269,6 +269,29 @@ def main() -> None:
         zero_mem = db.get(Memory, uuid.UUID(zero_mem_id))
         check("deleted_at 视为 None（未墓碑）", zero_mem is not None and zero_mem.deleted_at is None)
 
+    # 18. 回归 P1：同 id 改内容但 updated_at 未增大 → unchanged 且 content_differs=True，库内不落改
+    cd_mem_id = str(uuid.uuid4())
+    cd_ts = base_ts + 5000
+    cd_v1 = dict(mem_body, title="原标题", text_content="v1", created_at=cd_ts, updated_at=cd_ts, tag_ids=[])
+    st, body = show("18. PUT 记忆（原标题, updated_at=T1）", *call("PUT", f"/memories/{cd_mem_id}", cd_v1, token=access))
+    check("首次 upserted", st == 200 and body.get("status") == "upserted")
+    check("upserted 时 content_differs 缺省为 False", body.get("content_differs") is False)
+
+    cd_v2 = dict(cd_v1, title="被改的标题", text_content="v2")  # updated_at 仍为 T1
+    st, body = show("18. 改内容但 updated_at 不变 → 应 unchanged + content_differs=True", *call("PUT", f"/memories/{cd_mem_id}", cd_v2, token=access))
+    check("返回 200", st == 200)
+    check("status == unchanged", body.get("status") == "unchanged")
+    check("content_differs == True", body.get("content_differs") is True)
+    with Session(DB_ENGINE) as db:
+        cd_row = db.get(Memory, uuid.UUID(cd_mem_id))
+        check("库中标题仍是旧值（改动未落库）", cd_row is not None and cd_row.title == "原标题")
+
+    # 19. 回归：同 id 原样重发 → unchanged 且 content_differs=False（真重放，不打日志）
+    st, body = show("19. 同 id 原样重发 → 应 unchanged + content_differs=False", *call("PUT", f"/memories/{cd_mem_id}", cd_v1, token=access))
+    check("返回 200", st == 200)
+    check("status == unchanged", body.get("status") == "unchanged")
+    check("content_differs == False", body.get("content_differs") is False)
+
     print("=" * 70)
     print("全部通过")
     print("=" * 70)
