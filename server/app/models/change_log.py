@@ -4,7 +4,7 @@ import enum
 import uuid
 from datetime import datetime
 
-from sqlalchemy import BigInteger, DateTime, Enum, ForeignKey, Index, Uuid
+from sqlalchemy import BigInteger, DateTime, Enum, ForeignKey, Index, Integer, Uuid
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base, utcnow
@@ -26,7 +26,11 @@ class ChangeLog(Base):
     __tablename__ = "change_log"
 
     seq: Mapped[int] = mapped_column(
-        BigInteger, primary_key=True, autoincrement=True
+        # SQLite 下 BIGINT 主键不是 rowid 别名、不会自增，故用 with_variant 降为 INTEGER；
+        # PostgreSQL 下仍是 BigInteger（bigserial）自增。
+        BigInteger().with_variant(Integer, "sqlite"),
+        primary_key=True,
+        autoincrement=True,
     )  # bigserial，单调递增 = 增量游标本身
     user_id: Mapped[uuid.UUID] = mapped_column(
         Uuid, ForeignKey("users.id"), nullable=False
