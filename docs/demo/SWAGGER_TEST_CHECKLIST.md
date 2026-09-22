@@ -52,7 +52,7 @@
 | 接口 | `PUT /api/v1/memories/{memory_id}` |
 | `memory_id` | 自己编一个 UUID（见下方说明） |
 | 请求体 | 见下方 |
-| 期望 | `200`，`{"id":"11111111-...","server_version":1,"status":"upserted","conflict":null}` |
+| 期望 | `200`，`{"id":"11111111-...","server_version":1,"status":"upserted","conflict":null,"content_differs":false}` |
 
 **做法（推荐）：点 `Try it out` 后直接点 `Execute`，不要手打 JSON。**
 Swagger 会自动预填一份合法示例（该示例已验证是合法 JSON），直接执行就能 200。
@@ -126,6 +126,25 @@ Swagger 会自动预填一份合法示例（该示例已验证是合法 JSON）�
 - **不要改任何内容**，再点一次 **Execute**
 - 期望：`200`，但 `"status"` 变成 **`unchanged`**，且 `server_version` 仍是 `1`
 - 含义：同一笔数据重复上传不会产生重复记录（这是同步重试的安全前提）
+
+## 第 6b 步 · 改内容但不动 `updated_at`（验证"改动不会被静默丢掉"）
+
+这一步专门验证服务端的一个安全网，建议一定做。
+
+1. 把请求体里的 `"title"` 改成 `"我改过标题"`，**其他一个字都不要动**（特别是 `updated_at` 保持原值）
+2. **Execute**
+3. 期望：`200`、`"status": "unchanged"`、**`"content_differs": true`**
+4. 回第 7 步查一次列表 → 标题**还是旧的**（服务端没写）
+
+含义：服务端没有偷偷把你的改动吞掉，它明确告诉你「**你的内容和我不一样，但我没写**」。
+客户端（Flutter App）拿到 `content_differs: true` 就该把这条**重新入队、把 `updated_at` 抬大后重推**。
+
+5. 接着把 `updated_at` 从 `1758384000000` 改成 `1758384001000`（**调大一点**），**Execute**
+6. 期望：`200`、`"status": "upserted"`、`server_version` 变成 `2`
+7. 再回第 7 步查列表 → 标题这次**真的变成「我改过标题」了**
+
+> 这一步把「修订号」这个抽象概念变成了你眼睛能看到的东西：
+> **`updated_at` 不变 = 服务端认为你在重复上传，不写；`updated_at` 变大 = 这是一次新修订，才写。**
 
 ## 第 7 步 · 查列表（增量拉取）
 
