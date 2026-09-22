@@ -54,16 +54,38 @@
 | 请求体 | 见下方 |
 | 期望 | `200`，`{"id":"11111111-...","server_version":1,"status":"upserted","conflict":null}` |
 
+**做法（推荐）：点 `Try it out` 后直接点 `Execute`，不要手打 JSON。**
+Swagger 会自动预填一份合法示例（该示例已验证是合法 JSON），直接执行就能 200。
+手打 JSON 极易漏逗号，一漏就是 `422 JSON decode error`。
+
+**如果要手改字段，用这段（已验证 200，可整段复制）：**
+
 ```json
 {
   "type": "text",
   "title": "我的第一条记忆",
   "text_content": "今天学会了在 Swagger 里测接口",
+  "source": "quick_note",
+  "record_status": "normal",
   "created_at": 1758384000000,
   "updated_at": 1758384000000,
+  "client_version": "1.0.0",
   "tag_ids": []
 }
 ```
+
+### 字段速查（7 个必填，少一个就 422）
+
+| 字段 | 必填 | 取值 | 说明 |
+|---|---|---|---|
+| `type` | ✅ | `audio` \| `text` | 记忆类型 |
+| `title` | ✅ | 字符串 | 标题 |
+| `source` | ✅ | `record` \| `quick_note` | 来源：录音 / 快速记录 |
+| `record_status` | ✅ | `normal` \| `incomplete` | 正常 / 不完整 |
+| `created_at` | ✅ | 毫秒时间戳（数字） | **不加引号** |
+| `updated_at` | ✅ | 毫秒时间戳（数字） | **不加引号** |
+| `client_version` | ✅ | 如 `1.0.0` | 客户端版本 |
+| `text_content` / `audio_*` / `deleted_at` / `tag_ids` | ❌ | — | 可选 |
 
 > 想验证「引用不存在的标签也不会崩」：把 `"tag_ids": []` 改成
 > `"tag_ids": ["3fa85f64-5717-4562-b3fc-2c963f66afa6"]` 再点一次 Execute，
@@ -109,6 +131,9 @@
 | `401 AUTH_003` | 没登录 / token 过期 | 重新登录（第 2 步）+ 重新 Authorize（第 3 步） |
 | `409 AUTH_001` | 用户名已存在 | 换个 username |
 | `403 AUTH_005` | 访问了别人的数据 | 检查 token 是不是当前用户的 |
+| `422 VALID_001` + `JSON decode error` | **请求体 JSON 语法写错了**（漏逗号、多/少大括号、用了中文标点） | 全选清空输入框，重新粘贴上面的完整 body；或直接点 Execute 用预填内容 |
+| `422 VALID_001` + `Field required` | 少了必填字段 | 对照「字段速查」补全 7 个必填项 |
+| `422 VALID_001` + `Input should be ...` | 字段值类型/枚举不对 | 对照「字段速查」的取值列 |
 | `500 SRV_001` | 服务端异常 | 记下页面右上角的 `trace_id`，交给开发定位 |
 
 > 所有错误都是统一格式：`{"error": {"code": "...", "message": "...", "trace_id": "..."}}`。
