@@ -47,7 +47,7 @@ BASE = "http://127.0.0.1:8000/api/v1"
 from sqlalchemy import create_engine, func, select  # noqa: E402
 from sqlalchemy.orm import Session  # noqa: E402
 
-from app.models import ChangeLog, Memory, Tag  # noqa: E402
+from app.models import ChangeLog, Memory, MemoryTag, Tag  # noqa: E402
 from app.models.base import utcnow  # noqa: E402
 
 DB_ENGINE = create_engine("sqlite:///./dev.db", connect_args={"timeout": 30})
@@ -246,6 +246,28 @@ def main() -> None:
     # 15. refresh 换发 access_token（正向验证）
     st, body = show("15. 刷新 access_token", *call("POST", "/auth/refresh", {"refresh_token": refresh}))
     check("返回 200 且带新 access_token", st == 200 and bool(body.get("access_token")))
+
+    # 16. 回归 P0：tag_ids 含「不存在的标签」→ 不 500，记忆照常写入（标签容错）
+    ghost_tag = str(uuid.uuid4())
+    ghost_mem_id = str(uuid.uuid4())
+    ghost_body = dict(mem_body, created_at=base_ts + 2000, updated_at=base_ts + 2000, tag_ids=[ghost_tag])
+    st, body = show("16. PUT 记忆（tag_ids 含不存在的标签）", *call("PUT", f"/memories/{ghost_mem_id}", ghost_body, token=access))
+    check("不报 500，返回 200", st == 200)
+    check("status == upserted", body.get("status") == "upserted")
+    with Session(DB_ENGINE) as db:
+        ghost_mem = db.get(Memory, uuid.UUID(ghost_mem_id))
+        ghost_links = db.scalars(select(MemoryTag).where(MemoryTag.memory_id == uuid.UUID(ghost_mem_id))).all()
+        check("记忆本身写进去了", ghost_mem is not None)
+        check("没有写入任何 memory_tags 行", len(ghost_links) == 0)
+
+    # 17. 回归：deleted_at == 0 按「未删除」处理（Swagger 可选 int 默认填 0）
+    zero_mem_id = str(uuid.uuid4())
+    zero_body = dict(mem_body, created_at=base_ts + 3000, updated_at=base_ts + 3000, deleted_at=0, tag_ids=[])
+    st, body = show("17. PUT 记忆（deleted_at=0 应视为未删除）", *call("PUT", f"/memories/{zero_mem_id}", zero_body, token=access))
+    check("返回 200 且 upserted", st == 200 and body.get("status") == "upserted")
+    with Session(DB_ENGINE) as db:
+        zero_mem = db.get(Memory, uuid.UUID(zero_mem_id))
+        check("deleted_at 视为 None（未墓碑）", zero_mem is not None and zero_mem.deleted_at is None)
 
     print("=" * 70)
     print("全部通过")

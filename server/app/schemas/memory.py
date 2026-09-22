@@ -3,12 +3,36 @@
 import uuid
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.models.memory import MemorySource, MemoryType, RecordStatus
 
+# MemoryUpsertRequest 的规范示例（Swagger「Try it out」预填用）。
+# 值都是**能直接跑通**的：tag_ids 为空（避免被自动填成假 UUID）、
+# deleted_at 为 null、created_at/updated_at 为非 0 毫秒值。
+MEMORY_UPSERT_EXAMPLE = {
+    "type": "text",
+    "title": "09-22 12:30 的记录",
+    "text_content": "示例内容",
+    "audio_object_key": None,
+    "audio_duration_ms": None,
+    "audio_format": None,
+    "audio_size_bytes": None,
+    "source": "quick_note",
+    "record_status": "normal",
+    "created_at": 1790048000000,
+    "updated_at": 1790048000000,
+    "deleted_at": None,
+    "client_version": "1.0.0",
+    "tag_ids": [],
+}
+
 
 class MemoryUpsertRequest(BaseModel):
+    """记忆 upsert 请求体。"""
+
+    model_config = ConfigDict(json_schema_extra={"example": MEMORY_UPSERT_EXAMPLE})
+
     type: MemoryType
     title: str = Field(min_length=1, max_length=200)
     text_content: str | None = None

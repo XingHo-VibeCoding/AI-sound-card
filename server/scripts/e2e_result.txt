@@ -2,75 +2,85 @@
 闭环六接口实测
 ======================================================================
 [1. 注册] HTTP 201
-   {"user": {"id": "70a18060-002f-4dfb-bdd0-c04f33ceaaa4", "username": "u1790048616", "nickname": "测试"}, "access_token": "<redacted>", "refresh_token": "<redacted>", "token_expires_at": "<redacted>"}
+   {"user": {"id": "bea10a25-a9ce-4fe8-9b13-2c214f31dce8", "username": "u1790052400", "nickname": "测试"}, "access_token": "<redacted>", "refresh_token": "<redacted>", "token_expires_at": "<redacted>"}
    ==> PASS: 注册返回 201
    ==> PASS: 拿到双 token 与 user
 [2. 重复注册同名] HTTP 409
-   {"error": {"code": "AUTH_001", "message": "用户名已存在", "detail": {}, "trace_id": "68ab3ced"}}
+   {"error": {"code": "AUTH_001", "message": "用户名已存在", "detail": {}, "trace_id": "2d7d61f8"}}
    ==> PASS: 返回 409
    ==> PASS: 错误码 AUTH_001
 [3. 错密码登录] HTTP 401
-   {"error": {"code": "AUTH_002", "message": "账号或密码不正确", "detail": {}, "trace_id": "fe7b25ba"}}
+   {"error": {"code": "AUTH_002", "message": "账号或密码不正确", "detail": {}, "trace_id": "19b1fc59"}}
    ==> PASS: 返回 401
    ==> PASS: 错误码 AUTH_002
 [4. 正确登录] HTTP 200
-   {"user": {"id": "70a18060-002f-4dfb-bdd0-c04f33ceaaa4", "username": "u1790048616", "nickname": "测试"}, "access_token": "<redacted>", "refresh_token": "<redacted>", "token_expires_at": "<redacted>"}
+   {"user": {"id": "bea10a25-a9ce-4fe8-9b13-2c214f31dce8", "username": "u1790052400", "nickname": "测试"}, "access_token": "<redacted>", "refresh_token": "<redacted>", "token_expires_at": "<redacted>"}
    ==> PASS: 返回 200 + 双 token
 [5. 不带 token 调 /me] HTTP 401
-   {"error": {"code": "AUTH_003", "message": "登录已过期，请重新登录", "detail": {}, "trace_id": "3e29eecc"}}
+   {"error": {"code": "AUTH_003", "message": "登录已过期，请重新登录", "detail": {}, "trace_id": "b7318d3f"}}
    ==> PASS: 返回 401
    ==> PASS: 错误码 AUTH_003
 [6. 带 token 调 /me] HTTP 200
-   {"id": "70a18060-002f-4dfb-bdd0-c04f33ceaaa4", "username": "u1790048616", "nickname": "测试"}
+   {"id": "bea10a25-a9ce-4fe8-9b13-2c214f31dce8", "username": "u1790052400", "nickname": "测试"}
    ==> PASS: 返回 200 且用户名一致
-[预置] 直接入库 2 个标签（fixture，不进 change_log）: 07fcf951... c21d9064...
+[预置] 直接入库 2 个标签（fixture，不进 change_log）: 0dbdcd75... de4ceef6...
 [7. PUT 记忆（首次新建）] HTTP 200
-   {"id": "5742d72a-1577-4780-ac44-a0d2d01c08c7", "server_version": 1, "status": "upserted", "conflict": null}
+   {"id": "9e76b590-d47c-4877-946c-75b47e863925", "server_version": 1, "status": "upserted", "conflict": null}
    ==> PASS: status == upserted
    ==> PASS: server_version == 1
 [8. 原样重放（幂等）] HTTP 200
-   {"id": "5742d72a-1577-4780-ac44-a0d2d01c08c7", "server_version": 1, "status": "unchanged", "conflict": null}
+   {"id": "9e76b590-d47c-4877-946c-75b47e863925", "server_version": 1, "status": "unchanged", "conflict": null}
    ==> PASS: status == unchanged
    ==> PASS: server_version 保持 1
 [9. 带更新 updated_at + tag_ids 再 PUT] HTTP 200
-   {"id": "5742d72a-1577-4780-ac44-a0d2d01c08c7", "server_version": 2, "status": "upserted", "conflict": null}
+   {"id": "9e76b590-d47c-4877-946c-75b47e863925", "server_version": 2, "status": "upserted", "conflict": null}
    ==> PASS: status == upserted
    ==> PASS: server_version == 2
    ==> PASS: 该用户已有 2 条 memory 审计
-[10a. GET /memories?since=6&limit=1] HTTP 200
-   {"items": [{"id": "5742d72a-1577-4780-ac44-a0d2d01c08c7", "type": "text", "title": "首条记忆", "text_content": "hello", "audio_object_key": null, "audio_duration_ms": null, "audio_format": null, "audio_size_bytes": null, "source": "quick_note", "record_status": "normal", "client_version": "1.0.0", "created_at": 1790048616730, "updated_at": 1790048617730, "deleted_at": null, "server_version": 2, "tag_ids": ["07fcf951-e424-49d9-b715-c3c97112d1aa", "c21d9064-9504-4f9a-8089-68fbf9a4f630"]}], "next_cursor": 7, "has_more": true}
+[10a. GET /memories?since=30&limit=1] HTTP 200
+   {"items": [{"id": "9e76b590-d47c-4877-946c-75b47e863925", "type": "text", "title": "首条记忆", "text_content": "hello", "audio_object_key": null, "audio_duration_ms": null, "audio_format": null, "audio_size_bytes": null, "source": "quick_note", "record_status": "normal", "client_version": "1.0.0", "created_at": 1790052400714, "updated_at": 1790052401714, "deleted_at": null, "server_version": 2, "tag_ids": ["0dbdcd75-782a-4516-ba94-5154a7543f2d", "de4ceef6-3061-43f0-9a2f-c39967edd4f5"]}], "next_cursor": 31, "has_more": true}
    ==> PASS: 返回 200
-   ==> PASS: next_cursor == 7
+   ==> PASS: next_cursor == 31
    ==> PASS: has_more == True
    ==> PASS: 首条 id 匹配
-[10b. GET /memories?since=7] HTTP 200
-   {"items": [{"id": "5742d72a-1577-4780-ac44-a0d2d01c08c7", "type": "text", "title": "首条记忆", "text_content": "hello", "audio_object_key": null, "audio_duration_ms": null, "audio_format": null, "audio_size_bytes": null, "source": "quick_note", "record_status": "normal", "client_version": "1.0.0", "created_at": 1790048616730, "updated_at": 1790048617730, "deleted_at": null, "server_version": 2, "tag_ids": ["07fcf951-e424-49d9-b715-c3c97112d1aa", "c21d9064-9504-4f9a-8089-68fbf9a4f630"]}], "next_cursor": 8, "has_more": false}
+[10b. GET /memories?since=31] HTTP 200
+   {"items": [{"id": "9e76b590-d47c-4877-946c-75b47e863925", "type": "text", "title": "首条记忆", "text_content": "hello", "audio_object_key": null, "audio_duration_ms": null, "audio_format": null, "audio_size_bytes": null, "source": "quick_note", "record_status": "normal", "client_version": "1.0.0", "created_at": 1790052400714, "updated_at": 1790052401714, "deleted_at": null, "server_version": 2, "tag_ids": ["0dbdcd75-782a-4516-ba94-5154a7543f2d", "de4ceef6-3061-43f0-9a2f-c39967edd4f5"]}], "next_cursor": 32, "has_more": false}
    ==> PASS: 返回 200
-   ==> PASS: next_cursor == 8
+   ==> PASS: next_cursor == 32
    ==> PASS: has_more == False
    ==> PASS: 看到该条
    ==> PASS: server_version == 2
    ==> PASS: tag_ids 正确
 [11. DELETE 记忆] HTTP 200
-   {"id": "5742d72a-1577-4780-ac44-a0d2d01c08c7", "server_version": 3, "status": "deleted"}
+   {"id": "9e76b590-d47c-4877-946c-75b47e863925", "server_version": 3, "status": "deleted"}
    ==> PASS: status == deleted
    ==> PASS: server_version == 3
-[12. 回查 DB] memory 行存在=True, deleted_at=2026-09-22 03:43:36.861480
+[12. 回查 DB] memory 行存在=True, deleted_at=2026-09-22 04:46:40.846680
 [12. 回查 DB] change_log 行数（该用户）=3
    ==> PASS: DB 行仍存在
    ==> PASS: deleted_at 非空
    ==> PASS: change_log 审计在写（== 3）
-[13. GET /memories?since=8（应返回墓碑）] HTTP 200
-   {"items": [{"id": "5742d72a-1577-4780-ac44-a0d2d01c08c7", "type": "text", "title": "首条记忆", "text_content": "hello", "audio_object_key": null, "audio_duration_ms": null, "audio_format": null, "audio_size_bytes": null, "source": "quick_note", "record_status": "normal", "client_version": "1.0.0", "created_at": 1790048616730, "updated_at": 1790048617730, "deleted_at": 1790048616861, "server_version": 3, "tag_ids": ["07fcf951-e424-49d9-b715-c3c97112d1aa", "c21d9064-9504-4f9a-8089-68fbf9a4f630"]}], "next_cursor": 9, "has_more": false}
+[13. GET /memories?since=32（应返回墓碑）] HTTP 200
+   {"items": [{"id": "9e76b590-d47c-4877-946c-75b47e863925", "type": "text", "title": "首条记忆", "text_content": "hello", "audio_object_key": null, "audio_duration_ms": null, "audio_format": null, "audio_size_bytes": null, "source": "quick_note", "record_status": "normal", "client_version": "1.0.0", "created_at": 1790052400714, "updated_at": 1790052401714, "deleted_at": 1790052400846, "server_version": 3, "tag_ids": ["0dbdcd75-782a-4516-ba94-5154a7543f2d", "de4ceef6-3061-43f0-9a2f-c39967edd4f5"]}], "next_cursor": 33, "has_more": false}
    ==> PASS: 返回 200
-   ==> PASS: next_cursor == 9
+   ==> PASS: next_cursor == 33
    ==> PASS: 返回墓碑项且 deleted_at 非空
 [14. 越权访问（换用户）] HTTP 403
-   {"error": {"code": "AUTH_005", "message": "无权访问该资源", "detail": {}, "trace_id": "205c451a"}}
+   {"error": {"code": "AUTH_005", "message": "无权访问该资源", "detail": {}, "trace_id": "fdd3af98"}}
    ==> PASS: 返回 403 AUTH_005
 [15. 刷新 access_token] HTTP 200
    {"access_token": "<redacted>", "token_expires_at": "<redacted>"}
    ==> PASS: 返回 200 且带新 access_token
+[16. PUT 记忆（tag_ids 含不存在的标签）] HTTP 200
+   {"id": "5108fc6a-2679-4d9d-9d56-62ac747f7aea", "server_version": 4, "status": "upserted", "conflict": null}
+   ==> PASS: 不报 500，返回 200
+   ==> PASS: status == upserted
+   ==> PASS: 记忆本身写进去了
+   ==> PASS: 没有写入任何 memory_tags 行
+[17. PUT 记忆（deleted_at=0 应视为未删除）] HTTP 200
+   {"id": "93e0658f-45ee-4596-86b0-e3851f98645f", "server_version": 5, "status": "upserted", "conflict": null}
+   ==> PASS: 返回 200 且 upserted
+   ==> PASS: deleted_at 视为 None（未墓碑）
 ======================================================================
 全部通过
 ======================================================================

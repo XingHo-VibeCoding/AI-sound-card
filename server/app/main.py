@@ -8,7 +8,8 @@ from fastapi import FastAPI
 from app.api.v1.router import api_router
 from app.core.config import settings
 from app.core.handlers import register_exception_handlers
-from app.core.middleware import TraceMiddleware
+from app.core.middleware import ErrorHandlingMiddleware, TraceMiddleware
+from app.core.openapi import install_custom_openapi
 from app.core.security import ensure_secret_keys
 
 
@@ -22,9 +23,13 @@ def create_app() -> FastAPI:
         redoc_url="/redoc" if settings.app_env == "dev" else None,
     )
 
+    # 先加内层 ErrorHandlingMiddleware，再加外层 TraceMiddleware
+    # （add_middleware 后加者为最外层）：Trace 先写 trace_id，Error 再兜底异常
+    app.add_middleware(ErrorHandlingMiddleware)
     app.add_middleware(TraceMiddleware)
     register_exception_handlers(app)
     app.include_router(api_router, prefix="/api/v1")
+    install_custom_openapi(app)
 
     return app
 

@@ -8,6 +8,7 @@
 - 删除写 deleted_at 墓碑，不物理删行。
 """
 
+import logging
 import uuid
 from datetime import datetime, timezone
 
@@ -19,6 +20,7 @@ from app.models.base import utcnow
 from app.models.change_log import ChangeAction, ChangeEntity, ChangeLog
 from app.models.memory import Memory
 from app.models.memory_tag import MemoryTag
+from app.models.tag import Tag
 from app.repositories.change_log_repository import insert_log, next_server_version
 from app.schemas.memory import (
     MemoryItem,
@@ -26,6 +28,8 @@ from app.schemas.memory import (
     MemoryUpsertRequest,
     MemoryUpsertResponse,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def _dt_to_epoch_ms(dt: datetime) -> int:
@@ -37,6 +41,17 @@ def _dt_to_epoch_ms(dt: datetime) -> int:
 
 def _ms_to_dt(ms: int) -> datetime:
     return datetime.fromtimestamp(ms / 1000, tz=timezone.utc)
+
+
+def _deleted_at_dt(ms: int | None) -> datetime | None:
+    """把请求里的 deleted_at(epoch 毫秒) 转 datetime。
+
+    0 与 None 一律按「未删除」处理：Swagger 对可选 int 会默认填 0，
+    若把 0 当成真实时间会误判为「在 epoch 0 被删除」。
+    """
+    if ms is None or ms == 0:
+        return None
+    return _ms_to_dt(ms)
 
 
 def _to_item(memory: Memory, tag_ids: list[uuid.UUID]) -> MemoryItem:
@@ -76,6 +91,40 @@ def _active_tag_ids(db: Session, memory_id: uuid.UUID) -> list[uuid.UUID]:
         )
     ).all()
     return list(rows)
+
+
+def _filter_valid_tags(
+    db: Session,
+    user_id: uuid.UUID,
+    incoming: set[uuid.UUID],
+) -> set[uuid.UUID]:
+    """只保留「存在 + 属于该用户 + 未软删」的标签，其余跳过并 warning。
+
+    为什么容错而不是拒绝请求（写进代码，防后人改坏）：
+    tag_ids 每次 PUT 都携带该记忆的**全量**集合。客户端可能引用一个「尚未同步到
+    服务端的标签」，若因此拒绝整条 PUT（4xx），这条记忆会永远同步不上去，
+    客户端按 E14/E17 无限退避重试 → 死循环。容错跳过则系统收敛：
+    标签一旦同步上来，下一次 PUT 会自动补建关联，不丢数据（本地优先原则）。
+    """
+    if not incoming:
+        return set()
+    valid = set(
+        db.scalars(
+            select(Tag.id).where(
+                Tag.id.in_(incoming),
+                Tag.user_id == user_id,
+                Tag.deleted_at.is_(None),
+            )
+        ).all()
+    )
+    skipped = incoming - valid
+    if skipped:
+        logger.warning(
+            "记忆 upsert：跳过 %d 个未就绪标签（不存在/非本用户/已删除），id=%s",
+            len(skipped),
+            sorted(str(t) for t in skipped),
+        )
+    return valid
 
 
 def _diff_memory_tags(
@@ -126,6 +175,8 @@ def upsert_memory(
     """幂等 upsert（AC-K6）。"""
     memory = _get_memory_or_403(db, memory_id, user_id)
     incoming_updated_at = payload.updated_at
+    # 未就绪标签（不存在/非本用户/已删除）跳过，不阻断记忆本身写入
+    valid_tag_ids = _filter_valid_tags(db, user_id, set(payload.tag_ids))
 
     if memory is None:
         # 不存在 → 新建
@@ -145,12 +196,12 @@ def upsert_memory(
             client_version=payload.client_version,
             created_at=_ms_to_dt(payload.created_at),
             updated_at=_ms_to_dt(payload.updated_at),
-            deleted_at=_ms_to_dt(payload.deleted_at) if payload.deleted_at else None,
+            deleted_at=_deleted_at_dt(payload.deleted_at),
             server_version=new_sv,
         )
         db.add(memory)
         db.flush()
-        _diff_memory_tags(db, memory_id, set(payload.tag_ids), new_sv)
+        _diff_memory_tags(db, memory_id, valid_tag_ids, new_sv)
         insert_log(db, user_id, ChangeEntity.memory, memory_id, ChangeAction.upsert, new_sv)
         db.commit()
         return MemoryUpsertResponse(id=memory_id, server_version=new_sv, status="upserted")
@@ -176,10 +227,10 @@ def upsert_memory(
     memory.record_status = payload.record_status
     memory.client_version = payload.client_version
     memory.updated_at = _ms_to_dt(payload.updated_at)
-    memory.deleted_at = _ms_to_dt(payload.deleted_at) if payload.deleted_at else None
+    memory.deleted_at = _deleted_at_dt(payload.deleted_at)
     memory.server_version = new_sv
     # created_at 保持原始创建时间不变
-    _diff_memory_tags(db, memory_id, set(payload.tag_ids), new_sv)
+    _diff_memory_tags(db, memory_id, valid_tag_ids, new_sv)
     insert_log(db, user_id, ChangeEntity.memory, memory_id, ChangeAction.upsert, new_sv)
     db.commit()
     return MemoryUpsertResponse(id=memory_id, server_version=new_sv, status="upserted")

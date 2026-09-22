@@ -2,7 +2,7 @@
 
 import uuid
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Path, Query
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
@@ -21,8 +21,12 @@ router = APIRouter(prefix="/memories", tags=["memories"])
 
 @router.put("/{memory_id}", response_model=MemoryUpsertResponse)
 def upsert_memory(
-    memory_id: uuid.UUID,
     payload: MemoryUpsertRequest,
+    memory_id: uuid.UUID = Path(
+        ...,
+        description="记忆 id（客户端生成的 UUID）",
+        examples=["9a7c1e00-0000-4000-8000-000000000001"],
+    ),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> MemoryUpsertResponse:
@@ -41,7 +45,11 @@ def list_memories(
 
 @router.delete("/{memory_id}", response_model=MemoryDeleteResponse)
 def delete_memory(
-    memory_id: uuid.UUID,
+    memory_id: uuid.UUID = Path(
+        ...,
+        description="记忆 id（客户端生成的 UUID）",
+        examples=["9a7c1e00-0000-4000-8000-000000000001"],
+    ),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> MemoryDeleteResponse:
